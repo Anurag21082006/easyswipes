@@ -1,0 +1,12 @@
+# Ignore Node Modules (The massive folders)
+node_modules/
+bounty-frontend/node_modules/
+
+# Ignore Environment Variables (Keep your passwords safe!)
+.env
+
+# Ignore uploaded files
+uploads/
+
+# Ignore frontend build files
+bounty-frontend/dist/

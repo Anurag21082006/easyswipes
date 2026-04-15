@@ -1,0 +1,277 @@
+
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:var(--font-sans);background:#f8f9fb;color:var(--color-text-primary)}
+  .app{max-width:1100px;margin:0 auto;padding:2rem 1rem}
+  .hero-label{font-size:12px;font-weight:500;letter-spacing:.08em;color:#6366f1;text-transform:uppercase;margin-bottom:.5rem}
+  .hero-title{font-size:clamp(1.6rem,4vw,2.4rem);font-weight:500;color:var(--color-text-primary);line-height:1.25;margin-bottom:.4rem}
+  .hero-sub{font-size:15px;color:var(--color-text-secondary);margin-bottom:2rem}
+  .form-card{background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:16px;padding:1.75rem;margin-bottom:2.5rem}
+  .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:1rem}
+  @media(max-width:600px){.form-grid{grid-template-columns:1fr}}
+  .field{display:flex;flex-direction:column;gap:6px}
+  .field label{font-size:13px;font-weight:500;color:var(--color-text-secondary)}
+  .field input,.field textarea{border:0.5px solid var(--color-border-secondary);border-radius:8px;padding:10px 12px;font-size:14px;font-family:inherit;background:var(--color-background-primary);color:var(--color-text-primary);outline:none;transition:border .15s}
+  .field input:focus,.field textarea:focus{border-color:#6366f1;box-shadow:0 0 0 3px rgba(99,102,241,.12)}
+  .field textarea{resize:vertical;min-height:80px}
+  .field-full{grid-column:1/-1}
+  .dropzone{border:1.5px dashed #c7d2fe;border-radius:10px;padding:1.25rem;display:flex;flex-direction:column;align-items:center;gap:6px;cursor:pointer;background:#fafafe;transition:background .15s}
+  .dropzone:hover{background:#eef2ff}
+  .dropzone svg{color:#6366f1}
+  .dropzone span{font-size:13px;color:#6366f1;font-weight:500}
+  .dropzone small{font-size:11px;color:var(--color-text-secondary)}
+  .dropzone input{display:none}
+  .btn-primary{background:#6366f1;color:#fff;border:none;border-radius:10px;padding:12px 28px;font-size:15px;font-weight:500;cursor:pointer;transition:background .15s,transform .1s;width:100%;margin-top:1rem}
+  .btn-primary:hover{background:#4f46e5}
+  .btn-primary:active{transform:scale(.98)}
+  .section-header{display:flex;align-items:baseline;gap:.75rem;margin-bottom:1.25rem}
+  .section-title{font-size:1.2rem;font-weight:500}
+  .badge-count{background:#eef2ff;color:#6366f1;font-size:12px;font-weight:500;border-radius:20px;padding:2px 10px}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:1rem}
+  .card{background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:14px;padding:1.25rem;display:flex;flex-direction:column;gap:.6rem;transition:box-shadow .15s}
+  .card:hover{border-color:#c7d2fe}
+  .card-top{display:flex;justify-content:space-between;align-items:flex-start}
+  .card-meta{display:flex;flex-direction:column;gap:3px}
+  .card-no{font-size:10px;font-weight:500;color:#6366f1;letter-spacing:.06em;background:#eef2ff;border-radius:20px;padding:2px 9px;display:inline-block;width:fit-content}
+  .card-sr{font-size:11px;color:var(--color-text-secondary)}
+  .card-title{font-size:14px;font-weight:500;color:var(--color-text-primary);line-height:1.4}
+  .card-desc{font-size:13px;color:var(--color-text-secondary);line-height:1.5;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+  .reward-row{display:flex;align-items:center;gap:6px;margin-top:2px}
+  .reward-label{font-size:12px;color:var(--color-text-secondary)}
+  .reward-amount{font-size:1.3rem;font-weight:500;color:#16a34a}
+  .reward-note{font-size:11px;color:var(--color-text-secondary)}
+  .btn-claim{background:#f0fdf4;color:#16a34a;border:1px solid #bbf7d0;border-radius:8px;padding:9px 16px;font-size:13px;font-weight:500;cursor:pointer;transition:background .15s;width:100%;margin-top:auto}
+  .btn-claim:hover{background:#dcfce7}
+  .empty{text-align:center;padding:3rem 1rem;color:var(--color-text-secondary);font-size:14px}
+  .overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;z-index:100;padding:1rem}
+  .modal{background:var(--color-background-primary);border-radius:16px;padding:2rem;width:100%;max-width:420px;border:0.5px solid var(--color-border-tertiary)}
+  .modal-title{font-size:1.1rem;font-weight:500;margin-bottom:.25rem}
+  .modal-sub{font-size:13px;color:var(--color-text-secondary);margin-bottom:1.5rem}
+  .modal-bounty{background:#f8f9fb;border-radius:8px;padding:.75rem 1rem;margin-bottom:1.25rem;font-size:13px;color:var(--color-text-secondary)}
+  .modal-bounty strong{color:var(--color-text-primary)}
+  .modal-fields{display:flex;flex-direction:column;gap:.875rem;margin-bottom:1rem}
+  .consent{display:flex;gap:10px;align-items:flex-start;padding:.75rem;background:#fafafe;border-radius:8px;border:1px solid #c7d2fe}
+  .consent input[type=checkbox]{width:16px;height:16px;accent-color:#6366f1;margin-top:2px;flex-shrink:0}
+  .consent label{font-size:12px;color:var(--color-text-secondary);line-height:1.5;cursor:pointer}
+  .modal-actions{display:flex;gap:.75rem;margin-top:1.25rem}
+  .btn-cancel{flex:1;background:transparent;border:0.5px solid var(--color-border-secondary);border-radius:8px;padding:10px;font-size:14px;cursor:pointer;color:var(--color-text-secondary)}
+  .btn-cancel:hover{background:var(--color-background-secondary)}
+  .btn-confirm{flex:2;background:#6366f1;color:#fff;border:none;border-radius:8px;padding:10px;font-size:14px;font-weight:500;cursor:pointer}
+  .btn-confirm:hover{background:#4f46e5}
+  .btn-confirm:disabled{background:#c7d2fe;cursor:not-allowed}
+  .toast{position:fixed;bottom:1.5rem;left:50%;transform:translateX(-50%);background:#111;color:#fff;border-radius:10px;padding:12px 20px;font-size:14px;z-index:200;animation:fadeup .3s}
+  @keyframes fadeup{from{opacity:0;transform:translateX(-50%) translateY(12px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
+</style>
+
+<h2 class="sr-only">Bounty Chain — anonymous student assignment marketplace</h2>
+
+<div class="app" id="app"></div>
+
+<script>
+const state = {
+  bounties: [
+    {id:'B00001',title:'Data Structures Assignment — Heap Sort',desc:'Need full implementation with time complexity analysis. Must include visualizations.',amount:450},
+    {id:'B00002',title:'Marketing Case Study — Tesla Brand',desc:'4000-word case study with SWOT analysis and Porter\'s Five Forces.',amount:800},
+    {id:'B00003',title:'Statistics Problem Set — Regression',desc:'10 regression problems with R code and interpretation.',amount:300},
+  ],
+  modal: null,
+  claimData: {name:'',mobile:'',consent:false},
+  nextNum: 4,
+  toast: null,
+};
+
+function genId(){return 'B'+String(state.nextNum++).padStart(5,'0');}
+
+function render(){
+  const app = document.getElementById('app');
+  app.innerHTML = `
+    <div style="margin-bottom:2rem">
+      <div class="hero-label">Student Marketplace · Anonymous</div>
+      <h1 class="hero-title">Drop an Assignment or<br>Claim a Bounty.</h1>
+      <p class="hero-sub">Post work anonymously. Hunters claim, coordinate offline, get paid.</p>
+    </div>
+
+    <div class="form-card">
+      <div style="font-size:15px;font-weight:500;margin-bottom:1.25rem;display:flex;align-items:center;gap:8px">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6366f1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+        Post a bounty
+      </div>
+      <div class="form-grid">
+        <div class="field field-full">
+          <label for="b-title">Title</label>
+          <input id="b-title" type="text" placeholder="e.g. Data Structures Assignment — Week 5" />
+        </div>
+        <div class="field field-full">
+          <label for="b-desc">Description</label>
+          <textarea id="b-desc" placeholder="Describe what needs to be done, deadline, and any specific requirements..."></textarea>
+        </div>
+        <div class="field">
+          <label for="b-amt">Bounty amount (₹)</label>
+          <input id="b-amt" type="number" min="50" placeholder="e.g. 500" />
+        </div>
+        <div class="field">
+          <label>Upload file</label>
+          <div class="dropzone" id="dropzone" onclick="document.getElementById('file-input').click()">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></svg>
+            <span id="file-label">Click to upload</span>
+            <small>PDF, DOCX, ZIP up to 20MB</small>
+            <input type="file" id="file-input" />
+          </div>
+        </div>
+      </div>
+      <button class="btn-primary" id="post-btn">Post Bounty</button>
+    </div>
+
+    <div class="section-header">
+      <span class="section-title">Active bounties</span>
+      <span class="badge-count">${state.bounties.length} open</span>
+    </div>
+    ${state.bounties.length === 0 ? `<div class="empty">No bounties yet. Be the first to post!</div>` : ''}
+    <div class="grid">
+      ${state.bounties.map((b,i)=>`
+        <div class="card">
+          <div class="card-top">
+            <div class="card-meta">
+              <span class="card-no">$${b.id}$</span>
+              <span class="card-sr">Sr. ${i+1}</span>
+            </div>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#c7d2fe" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+          </div>
+          <div class="card-title">${b.title}</div>
+          <div class="card-desc">${b.desc}</div>
+          <div class="reward-row">
+            <span class="reward-label">Payable:</span>
+            <span class="reward-amount">₹${b.amount - 50}</span>
+            <span class="reward-note">(after platform fee)</span>
+          </div>
+          <button class="btn-claim" data-id="${b.id}">
+            <span style="display:flex;align-items:center;justify-content:center;gap:6px">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 12 20 22 4 22 4 12"/><rect x="2" y="7" width="20" height="5"/><path d="M12 22V7"/><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"/><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/></svg>
+              Claim bounty
+            </span>
+          </button>
+        </div>
+      `).join('')}
+    </div>
+
+    ${state.modal ? `
+    <div class="overlay" id="overlay">
+      <div class="modal">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.25rem">
+          <div class="modal-title">Claim this bounty</div>
+          <button id="modal-close" style="background:none;border:none;cursor:pointer;color:var(--color-text-secondary);font-size:18px;line-height:1">×</button>
+        </div>
+        <div class="modal-sub">Enter your details to coordinate payment offline.</div>
+        <div class="modal-bounty">
+          <strong>${state.modal.title}</strong><br>
+          Reward: <strong style="color:#16a34a">₹${state.modal.amount - 50}</strong>
+        </div>
+        <div class="modal-fields">
+          <div class="field">
+            <label for="m-name">Name</label>
+            <input id="m-name" type="text" placeholder="Your full name" value="${state.claimData.name}" />
+          </div>
+          <div class="field">
+            <label for="m-mobile">Mobile number</label>
+            <input id="m-mobile" type="tel" placeholder="+91 98765 43210" value="${state.claimData.mobile}" />
+          </div>
+        </div>
+        <div class="consent">
+          <input type="checkbox" id="m-consent" ${state.claimData.consent?'checked':''} />
+          <label for="m-consent">I agree to use this mobile number for secure, offline payment coordination regarding this bounty.</label>
+        </div>
+        <div class="modal-actions">
+          <button class="btn-cancel" id="modal-cancel">Cancel</button>
+          <button class="btn-confirm" id="modal-confirm" ${(!state.claimData.consent||!state.claimData.name||!state.claimData.mobile)?'disabled':''}>
+            Confirm claim
+          </button>
+        </div>
+      </div>
+    </div>` : ''}
+  `;
+  bindEvents();
+}
+
+function bindEvents(){
+  document.getElementById('file-input')?.addEventListener('change',e=>{
+    const f=e.target.files[0];
+    if(f) document.getElementById('file-label').textContent = f.name;
+  });
+
+  document.getElementById('post-btn')?.addEventListener('click',()=>{
+    const title = document.getElementById('b-title').value.trim();
+    const desc = document.getElementById('b-desc').value.trim();
+    const amt = parseInt(document.getElementById('b-amt').value);
+    if(!title){showToast('Please enter a title');return;}
+    if(!desc){showToast('Please enter a description');return;}
+    if(!amt||amt<50){showToast('Minimum bounty is ₹50');return;}
+    state.bounties.unshift({id:genId(),title,desc,amount:amt});
+    document.getElementById('b-title').value='';
+    document.getElementById('b-desc').value='';
+    document.getElementById('b-amt').value='';
+    document.getElementById('file-label').textContent='Click to upload';
+    render();
+    showToast('Bounty posted successfully!');
+  });
+
+  document.querySelectorAll('.btn-claim').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+      const id = btn.dataset.id;
+      const b = state.bounties.find(x=>x.id===id);
+      state.modal = b;
+      state.claimData = {name:'',mobile:'',consent:false};
+      render();
+    });
+  });
+
+  document.getElementById('modal-close')?.addEventListener('click',closeModal);
+  document.getElementById('modal-cancel')?.addEventListener('click',closeModal);
+  document.getElementById('overlay')?.addEventListener('click',e=>{if(e.target.id==='overlay')closeModal();});
+
+  document.getElementById('m-name')?.addEventListener('input',e=>{
+    state.claimData.name=e.target.value;
+    updateConfirmBtn();
+  });
+  document.getElementById('m-mobile')?.addEventListener('input',e=>{
+    state.claimData.mobile=e.target.value;
+    updateConfirmBtn();
+  });
+  document.getElementById('m-consent')?.addEventListener('change',e=>{
+    state.claimData.consent=e.target.checked;
+    updateConfirmBtn();
+  });
+
+  document.getElementById('modal-confirm')?.addEventListener('click',()=>{
+    const name = state.claimData.name.trim();
+    const mobile = state.claimData.mobile.trim();
+    if(!name||!mobile||!state.claimData.consent) return;
+    const claimed = state.modal;
+    state.bounties = state.bounties.filter(b=>b.id!==claimed.id);
+    closeModal();
+    render();
+    showToast(`Claimed! You'll be contacted for ₹${claimed.amount-50}`);
+  });
+}
+
+function updateConfirmBtn(){
+  const btn = document.getElementById('modal-confirm');
+  if(!btn) return;
+  const ok = state.claimData.name.trim() && state.claimData.mobile.trim() && state.claimData.consent;
+  btn.disabled = !ok;
+}
+
+function closeModal(){
+  state.modal=null;
+  render();
+}
+
+function showToast(msg){
+  const t = document.createElement('div');
+  t.className='toast';
+  t.textContent=msg;
+  document.body.appendChild(t);
+  setTimeout(()=>t.remove(),2800);
+}
+
+render();
+</script>
