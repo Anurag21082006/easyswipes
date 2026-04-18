@@ -136,12 +136,15 @@ async function postBounty({ mobile, title, description, bountyAmount, assignment
  * Sends JSON body: { mobile, bountyId }
  * Returns the updated bounty object on success.
  */
-async function claimBounty({ mobile, bountyId }) {
+// 1. Add email here in the parameters
+const claimBounty = async ({ mobile, email, bountyId }) => { 
   const response = await fetch(`${API_BASE}/bounties/claim`, {
     method: "PATCH",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ mobile, bountyId }),
+    // 2. Add email here in the payload!
+    body: JSON.stringify({ mobile, email, bountyId }), 
   });
+  // ...
 
   if (response.status === 409) {
     throw new Error(
@@ -156,128 +159,96 @@ async function claimBounty({ mobile, bountyId }) {
   return response.json();
 }
 
-// ─── Claim Modal ──────────────────────────────────────────────────────────────
-function ClaimModal({ bounty, onClose, onSuccess, addToast }) {
-  const [name, setName] = useState("");
+// --- CLAIM MODAL COMPONENT (Crash-Free Version) ---
+function ClaimModal({ bounty, onClose, onSuccess }) {
   const [mobile, setMobile] = useState("");
-  const [consent, setConsent] = useState(false);
+  const [email, setEmail] = useState(""); 
   const [loading, setLoading] = useState(false);
 
-  const canSubmit = name.trim() && mobile.trim().length >= 10 && consent && !loading;
+  const canSubmit = mobile.trim().length >= 10 && email.includes("@");
 
   const handleConfirm = async () => {
     if (!canSubmit) return;
     setLoading(true);
     try {
-      // POST the claim — backend only needs mobile + bountyId
-      await claimBounty({ mobile: mobile.trim(), bountyId: bounty.bountyId });
-      addToast(
-        `Bounty claimed! You'll be contacted at ${mobile} for ₹${bounty.bountyAmount - 50}.`,
-        "success"
-      );
-      onSuccess(bounty.bountyId); // remove from local state
+      await claimBounty({ 
+        mobile: mobile.trim(), 
+        email: email.trim(), 
+        bountyId: bounty.bountyId 
+      });
+      
+      alert(`🎉 BOUNTY SECURED!\n\nThe assignment is sent to your email as per you provided.\n\nYou can also contact the Poster at: ${bounty.posterMobile}`);
+      
+      onSuccess(bounty.bountyId); 
       onClose();
     } catch (err) {
-      addToast(err.message, "error");
+      alert(`Error: ${err.message}`); 
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div
-      className="fixed inset-0 z-40 bg-black/50 flex items-center justify-center p-4"
-      onClick={(e) => e.target === e.currentTarget && onClose()}
-    >
-      <div className="bg-white rounded-2xl w-full max-w-md border border-gray-100 p-6 shadow-xl">
-        {/* Header */}
-        <div className="flex justify-between items-start mb-1">
-          <h2 className="text-base font-medium text-gray-900">Claim this bounty</h2>
-          <button
-            onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 transition-colors"
-          >
-            <X className="w-4 h-4" />
-          </button>
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 transition-all">
+      <div className="bg-white rounded-3xl w-full max-w-md p-8 shadow-2xl relative">
+        {/* FIX 1: Replaced the missing <X /> icon with a standard unicode ✕ */}
+        <button
+          onClick={onClose}
+          className="absolute top-5 right-5 text-gray-400 hover:text-gray-900 transition-colors text-xl font-bold"
+        >
+          ✕
+        </button>
+
+        {/* FIX 2: Replaced the missing <ShieldCheck /> icon with a native emoji */}
+        <div className="w-14 h-14 bg-indigo-50 rounded-2xl flex items-center justify-center mb-6 text-2xl">
+          🛡️
         </div>
-        <p className="text-sm text-gray-500 mb-4">
-          Enter your details to coordinate payment offline.
+
+        <h3 className="text-2xl font-bold text-gray-900 mb-2">Claim this Bounty</h3>
+        <p className="text-gray-500 mb-6 leading-relaxed">
+          You are about to claim <strong className="text-gray-900">"{bounty.title}"</strong>. 
+          The platform fee is ₹50. You will receive <strong>₹{bounty.bountyAmount - 50}</strong> upon completion.
         </p>
 
-        {/* Bounty preview */}
-        <div className="bg-gray-50 rounded-xl p-3 mb-5 border border-gray-100">
-          <p className="text-sm font-medium text-gray-800 leading-snug">{bounty.title}</p>
-          <p className="text-sm text-gray-500 mt-0.5">
-            Reward:{" "}
-            <span className="text-green-600 font-semibold">
-              ₹{bounty.bountyAmount - 50}
-            </span>
-          </p>
-        </div>
-
-        {/* Fields */}
-        <div className="space-y-3 mb-4">
-          <div>
-            <label className="text-xs font-medium text-gray-500 block mb-1.5">Name</label>
-            <input
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="Your full name"
-              className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 transition"
-            />
-          </div>
-          <div>
-            <label className="text-xs font-medium text-gray-500 block mb-1.5">
-              Mobile number
-            </label>
-            <input
-              type="tel"
-              value={mobile}
-              onChange={(e) => setMobile(e.target.value)}
-              placeholder="+91 98765 43210"
-              className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 transition"
-            />
-          </div>
-        </div>
-
-        {/* Consent */}
-        <label className="flex gap-3 items-start bg-indigo-50 border border-indigo-100 rounded-xl p-3 cursor-pointer mb-5">
+        <div className="mb-4">
+          <label className="text-sm font-semibold text-gray-700 block mb-2">
+            Your WhatsApp Number
+          </label>
           <input
-            type="checkbox"
-            checked={consent}
-            onChange={(e) => setConsent(e.target.checked)}
-            className="mt-0.5 accent-indigo-600 w-4 h-4 shrink-0"
+            type="text"
+            value={mobile}
+            onChange={(e) => setMobile(e.target.value)}
+            placeholder="+91 98765 43210"
+            className="w-full border border-gray-200 rounded-xl px-4 py-3 outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100 transition-all text-lg font-medium"
           />
-          <span className="text-xs text-gray-600 leading-relaxed">
-            I agree to use this mobile number for secure, offline payment coordination
-            regarding this bounty.
-          </span>
-        </label>
+        </div>
 
-        {/* Actions */}
-        <div className="flex gap-2">
+        <div className="mb-8">
+          <label className="text-sm font-semibold text-gray-700 block mb-2">
+            Your Email Address (For the Assignment File)
+          </label>
+          <input
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="hunter@example.com"
+            className="w-full border border-gray-200 rounded-xl px-4 py-3 outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100 transition-all text-lg font-medium"
+          />
+        </div>
+
+        <div className="flex justify-end gap-3">
           <button
             onClick={onClose}
-            className="flex-1 border border-gray-200 rounded-xl py-2.5 text-sm text-gray-600 hover:bg-gray-50 transition"
+            className="px-6 py-3 text-gray-600 font-semibold hover:bg-gray-50 rounded-xl transition-colors"
           >
             Cancel
           </button>
           <button
             onClick={handleConfirm}
-            disabled={!canSubmit}
-            className="flex-[2] bg-indigo-600 text-white rounded-xl py-2.5 text-sm font-medium
-              hover:bg-indigo-700 transition disabled:bg-indigo-200 disabled:cursor-not-allowed
-              flex items-center justify-center gap-2"
+            disabled={!canSubmit || loading}
+            className="px-6 py-3 bg-gray-900 hover:bg-indigo-600 disabled:opacity-50 text-white font-semibold rounded-xl transition-all shadow-lg hover:shadow-indigo-500/30 flex items-center gap-2"
           >
-            {loading ? (
-              <>
-                <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                Confirming...
-              </>
-            ) : (
-              "Confirm Claim"
-            )}
+            {loading ? "Locking it in..." : "Confirm Claim"}
           </button>
         </div>
       </div>

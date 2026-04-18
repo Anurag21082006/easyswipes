@@ -6,6 +6,7 @@ const Bounty = require('../models/Bounty');
 const { identityMiddleware } = require('../middleware/identity');
 const { handleUpload } = require('../middleware/upload');
 const { generateBountyId } = require('../utils/tokenGenerator');
+const { sendHunterEmail } = require('../utils/mailer');
 
 // ─────────────────────────────────────────────
 // POST /bounties
@@ -103,12 +104,11 @@ router.get('/active', async (req, res, next) => {
 
 // ─────────────────────────────────────────────
 // PATCH /bounties/claim
-// Atomically claim an OPEN bounty.
-// Uses findOneAndUpdate with status guard to prevent race conditions.
+// Atomically claim an OPEN bounty & Trigger Email
 // ─────────────────────────────────────────────
 router.patch(
   '/claim',
-  identityMiddleware('hunt'),   // resolves req.hunterToken
+  identityMiddleware('hunt'),
   async (req, res, next) => {
     try {
       const { bountyId } = req.body;
@@ -117,38 +117,39 @@ router.patch(
         return res.status(400).json({ success: false, message: 'bountyId is required.' });
       }
 
-      // Atomic transition: only succeeds if status is currently OPEN.
-      // This is the race-condition guard — two simultaneous claims will result
-      // in exactly one succeeding; the other gets null back.
+      // 1. Update Database (Atomic test-and-set)
       const claimed = await Bounty.findOneAndUpdate(
         {
           bountyId,
-          status: 'OPEN',   // ← atomic status check; acts as a test-and-set
+          status: 'OPEN',
         },
         {
           $set: {
             status: 'CLAIMED',
+            hunterMobile: req.body.mobile, 
             'claimedBy.hunterToken': req.hunterToken,
             'claimedBy.claimedAt': new Date(),
           },
         },
         {
-          new: true,           // return updated document
+          new: true,
           runValidators: true,
-          projection: {        // return only safe fields
+          projection: {
             bountyId: 1,
             posterToken: 1,
             title: 1,
+            description: 1, // Grabbed for the email body
             bountyAmount: 1,
             status: 1,
             claimedBy: 1,
+            attachmentPath: 1, // Crucial: grabbed so we can attach the file!
             _id: 0,
           },
         }
       );
 
+      // 2. If it wasn't claimed, handle the error
       if (!claimed) {
-        // Either bountyId doesn't exist or it was already claimed (race lost)
         const exists = await Bounty.exists({ bountyId });
         if (!exists) {
           return res.status(404).json({ success: false, message: 'Bounty not found.' });
@@ -159,11 +160,24 @@ router.patch(
         });
       }
 
+      // 3. Trigger the Email Delivery System!
+      // (We check if it exists, and if the user actually uploaded an assignment)
+      if (req.body.email && claimed.attachmentPath) {
+        try {
+          await sendHunterEmail(req.body.email, claimed);
+          console.log("Email sent successfully to hunter!");
+        } catch (mailError) {
+          console.error("Mail failed to send:", mailError);
+        }
+      }
+
+      // 4. Send success response back to React
       return res.status(200).json({
         success: true,
         message: 'Bounty claimed successfully.',
         data: claimed,
       });
+      
     } catch (err) {
       next(err);
     }

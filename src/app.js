@@ -1,3 +1,4 @@
+import AdminDashboard from './AdminDashboard';
 const express = require('express');
 const helmet = require('helmet');
 const morgan = require('morgan');
@@ -9,6 +10,11 @@ const adminRoutes = require('./routes/admin.routes');
 const app = express();
 
 app.use(cors()); // Put this right below const app = express();
+
+app.use('/api/admin', require('./routes/admin.routes'));
+
+// ADD THIS LINE: This makes your uploads folder publicly accessible for downloads
+app.use('/uploads', express.static('uploads'));
 
 // ── Security & Logging ──────────────────────────────────────────────────────
 app.use(helmet());
@@ -26,6 +32,8 @@ app.get('/health', (_req, res) => res.status(200).json({ status: 'ok', ts: new D
 // ── Routes ──────────────────────────────────────────────────────────────────
 app.use('/bounties', bountyRoutes);
 app.use('/admin', adminRoutes);
+app.use('/api/admin', adminRoutes);
+<Route path="/god-mode-admin" element={<AdminDashboard />} />
 
 // ── 404 Handler ─────────────────────────────────────────────────────────────
 app.use((_req, res) => {
