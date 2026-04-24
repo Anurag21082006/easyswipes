@@ -17,7 +17,7 @@ router.get('/bounties', adminGuard, async (req, res) => {
   try {
     const bounties = await Bounty
       .find({})
-      .select('bountyId title description bountyAmount status posterMobile hunterMobile createdAt updatedAt')
+      .select('bountyId title description bountyAmount status posterMobile hunterMobile claimedBy createdAt updatedAt')
       .sort({ createdAt: -1 })
       .lean();
 

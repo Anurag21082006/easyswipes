@@ -1,3 +1,5 @@
+import AdminDashboard from './AdminDashboard';
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom"; // <-- NEW
 import { useState, useEffect, useRef, useCallback } from "react";
 import {
   Upload,
@@ -295,7 +297,7 @@ function BountyCard({ bounty, index, onClaim }) {
 }
 
 // ─── Main Component ───────────────────────────────────────────────────────────
-export default function BountyChain() {
+function BountyChainHome() {
   // ── Bounty board state
   const [bounties, setBounties] = useState([]);
   const [boardLoading, setBoardLoading] = useState(true);
@@ -574,5 +576,17 @@ export default function BountyChain() {
       {/* ── Toast Container ────────────────────────────────────────────────── */}
       <ToastContainer toasts={toasts} onRemove={removeToast} />
     </div>
+  );
+} // <--- THIS is the magical bracket that closes BountyChainHome!
+
+// ─── App Router (The Traffic Cop) ─────────────────────────────────────────────
+export default function App() {
+  return (
+    <Router>
+      <Routes>
+        <Route path="/" element={<BountyChainHome />} />
+        <Route path="/god-mode-admin" element={<AdminDashboard />} />
+      </Routes>
+    </Router>
   );
 }

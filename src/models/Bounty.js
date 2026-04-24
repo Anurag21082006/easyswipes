@@ -81,8 +81,15 @@ const bountySchema = new mongoose.Schema(
       type: String,
       default: null,
     },
-  },
-  { timestamps: true }
-);
+    hunterMobile: { 
+      type: String, 
+      default: null 
+    },
+    posterMobile: { type: String, required: true },
+    hunterMobile: { type: String, default: null }, // Ensure this is here
+    hunterEmail:  { type: String, default: null }, // Ensure this is here
+    status: { type: String, default: 'OPEN' },
+}, { timestamps: true });
+  
 
 module.exports = mongoose.model('Bounty', bountySchema);

@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const path = require('path');
+const nodemailer = require('nodemailer');
 
 const Bounty = require('../models/Bounty');
 const { identityMiddleware } = require('../middleware/identity');
@@ -102,86 +103,58 @@ router.get('/active', async (req, res, next) => {
   }
 });
 
-// ─────────────────────────────────────────────
-// PATCH /bounties/claim
-// Atomically claim an OPEN bounty & Trigger Email
-// ─────────────────────────────────────────────
-router.patch(
-  '/claim',
-  identityMiddleware('hunt'),
-  async (req, res, next) => {
-    try {
-      const { bountyId } = req.body;
+// ── PATCH /api/bounties/claim ─────────────────────────────────────────────
+router.patch('/claim', async (req, res) => {
+  try {
+    const { bountyId, mobile, email } = req.body;
 
-      if (!bountyId) {
-        return res.status(400).json({ success: false, message: 'bountyId is required.' });
+    // 1. Find the bounty
+    const bounty = await Bounty.findOne({ bountyId });
+    if (!bounty) return res.status(404).json({ message: "Bounty not found" });
+    if (bounty.status === 'CLAIMED') return res.status(400).json({ message: "Already claimed" });
+
+    // 2. Save the hunter's info
+    bounty.status = 'CLAIMED';
+    bounty.hunterMobile = mobile; 
+    bounty.hunterEmail = email;
+    bounty.claimedAt = new Date();
+    await bounty.save();
+
+    // 3. SET UP THE EMAIL TRANSPORTER
+    const transporter = nodemailer.createTransport({
+      service: 'gmail',
+      auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS
       }
+    });
 
-      // 1. Update Database (Atomic test-and-set)
-      const claimed = await Bounty.findOneAndUpdate(
+    // 4. DRAFT THE EMAIL
+    const mailOptions = {
+      from: process.env.EMAIL_USER,
+      to: email, // Send to the hunter's email
+      subject: `[BountyChain] Assignment Secured: ${bounty.title}`,
+      text: `Congratulations Hunter!\n\nYou have successfully claimed the bounty: "${bounty.title}".\n\nPoster's WhatsApp Number: ${bounty.posterMobile}\n\nPlease contact the poster immediately to coordinate payment and details.\n\nGood luck!`,
+    };
+
+    // 5. ATTACH THE FILE (If the poster uploaded one)
+    if (bounty.attachmentPath) {
+      mailOptions.attachments = [
         {
-          bountyId,
-          status: 'OPEN',
-        },
-        {
-          $set: {
-            status: 'CLAIMED',
-            hunterMobile: req.body.mobile, 
-            'claimedBy.hunterToken': req.hunterToken,
-            'claimedBy.claimedAt': new Date(),
-          },
-        },
-        {
-          new: true,
-          runValidators: true,
-          projection: {
-            bountyId: 1,
-            posterToken: 1,
-            title: 1,
-            description: 1, // Grabbed for the email body
-            bountyAmount: 1,
-            status: 1,
-            claimedBy: 1,
-            attachmentPath: 1, // Crucial: grabbed so we can attach the file!
-            _id: 0,
-          },
+          filename: `Assignment_${bounty.bountyId}`, // You can customize this name
+          path: `./uploads/${bounty.attachmentPath}` // Looks in your backend uploads folder
         }
-      );
-
-      // 2. If it wasn't claimed, handle the error
-      if (!claimed) {
-        const exists = await Bounty.exists({ bountyId });
-        if (!exists) {
-          return res.status(404).json({ success: false, message: 'Bounty not found.' });
-        }
-        return res.status(409).json({
-          success: false,
-          message: 'Bounty is no longer available — it may have already been claimed.',
-        });
-      }
-
-      // 3. Trigger the Email Delivery System!
-      // (We check if it exists, and if the user actually uploaded an assignment)
-      if (req.body.email && claimed.attachmentPath) {
-        try {
-          await sendHunterEmail(req.body.email, claimed);
-          console.log("Email sent successfully to hunter!");
-        } catch (mailError) {
-          console.error("Mail failed to send:", mailError);
-        }
-      }
-
-      // 4. Send success response back to React
-      return res.status(200).json({
-        success: true,
-        message: 'Bounty claimed successfully.',
-        data: claimed,
-      });
-      
-    } catch (err) {
-      next(err);
+      ];
     }
+
+    // 6. SEND IT
+    await transporter.sendMail(mailOptions);
+
+    res.json({ success: true, message: "Claimed successfully and email sent!" });
+  } catch (err) {
+    console.error("Claim/Email Error:", err);
+    res.status(500).json({ error: "Server error during claim." });
   }
-);
+});
 
 module.exports = router;

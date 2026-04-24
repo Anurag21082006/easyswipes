@@ -1,4 +1,3 @@
-import AdminDashboard from './AdminDashboard';
 const express = require('express');
 const helmet = require('helmet');
 const morgan = require('morgan');
@@ -9,31 +8,24 @@ const adminRoutes = require('./routes/admin.routes');
 
 const app = express();
 
-app.use(cors()); // Put this right below const app = express();
-
-app.use('/api/admin', require('./routes/admin.routes'));
-
-// ADD THIS LINE: This makes your uploads folder publicly accessible for downloads
-app.use('/uploads', express.static('uploads'));
-
-// ── Security & Logging ──────────────────────────────────────────────────────
+// ── Security & CORS ─────────────────────────────────────────────────────────
+app.use(cors());
 app.use(helmet());
 app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev'));
 
-// ── Body Parsing ────────────────────────────────────────────────────────────
-// NOTE: multer handles multipart/form-data in upload routes.
-// These parsers handle JSON and URL-encoded bodies for non-upload routes.
+// ── Body Parsing (MUST BE BEFORE ROUTES) ────────────────────────────────────
 app.use(express.json({ limit: '1mb' }));
 app.use(express.urlencoded({ extended: true, limit: '1mb' }));
+
+// ── Static Files ────────────────────────────────────────────────────────────
+app.use('/uploads', express.static('uploads'));
 
 // ── Health Check ────────────────────────────────────────────────────────────
 app.get('/health', (_req, res) => res.status(200).json({ status: 'ok', ts: new Date().toISOString() }));
 
-// ── Routes ──────────────────────────────────────────────────────────────────
+// ── Routes (Cleaned up!) ────────────────────────────────────────────────────
 app.use('/bounties', bountyRoutes);
-app.use('/admin', adminRoutes);
-app.use('/api/admin', adminRoutes);
-<Route path="/god-mode-admin" element={<AdminDashboard />} />
+app.use('/api/admin', adminRoutes); // Only declared once now!
 
 // ── 404 Handler ─────────────────────────────────────────────────────────────
 app.use((_req, res) => {
@@ -45,13 +37,11 @@ app.use((_req, res) => {
 app.use((err, _req, res, _next) => {
   console.error('[Error]', err);
 
-  // Mongoose validation errors
   if (err.name === 'ValidationError') {
     const messages = Object.values(err.errors).map((e) => e.message);
     return res.status(400).json({ success: false, message: messages.join('. ') });
   }
 
-  // Mongo duplicate key
   if (err.code === 11000) {
     return res.status(409).json({ success: false, message: 'Duplicate entry detected.' });
   }
